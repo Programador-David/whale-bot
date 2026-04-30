@@ -16,13 +16,19 @@ ordens_vistas = set()
 def monitorar_bybit(categoria, label):
     try:
         url = "https://api.bybit.com/v5/market/recent-trade"
-        params = {"category": categoria, "symbol": "BTCUSDT", "limit": 50}
+        params = {"category": categoria, "symbol": "BTCUSDT", "limit": "50"}
         r = requests.get(url, params=params, timeout=10)
+        texto = r.text
         dados = r.json()
+        retcode = dados.get("retCode", -1)
+        if retcode != 0:
+            print(f"{label} erro retCode: {dados.get('retMsg')}")
+            return
         trades = dados.get("result", {}).get("list", [])
         if not isinstance(trades, list):
-            print(f"{label} resposta inesperada: {dados}")
+            print(f"{label} lista inesperada: {trades}")
             return
+        count = 0
         for trade in trades:
             if not isinstance(trade, dict):
                 continue
@@ -42,8 +48,8 @@ def monitorar_bybit(categoria, label):
                     f"⏰ {datetime.now().strftime('%H:%M:%S')}"
                 )
                 enviar_telegram(msg)
-                print(f"Alerta enviado: {qty:.4f} BTC {side}")
-        print(f"{label} — OK, {len(trades)} trades verificados")
+                count += 1
+        print(f"{label} — {len(trades)} trades verificados, {count} alertas enviados")
     except Exception as e:
         print(f"Erro {label}: {e}")
 
