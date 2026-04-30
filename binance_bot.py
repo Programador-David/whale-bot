@@ -19,12 +19,17 @@ def monitorar_spot():
         params = {"symbol": "BTCUSDT", "limit": 50}
         r = requests.get(url, params=params, timeout=10)
         trades = r.json()
+        if not isinstance(trades, list):
+            print(f"Spot resposta inesperada: {trades}")
+            return
         for trade in trades:
-            tid = str(trade.get("id"))
+            if not isinstance(trade, dict):
+                continue
+            tid = str(trade.get("id", ""))
             qty = float(trade.get("qty", 0))
             price = float(trade.get("price", 0))
             side = "🟢 COMPRA" if not trade.get("isBuyerMaker") else "🔴 VENDA"
-            if tid not in ordens_vistas and qty >= LIMITE_BTC:
+            if tid and tid not in ordens_vistas and qty >= LIMITE_BTC:
                 ordens_vistas.add(tid)
                 valor_usd = qty * price
                 msg = (
@@ -46,12 +51,17 @@ def monitorar_futuros():
         params = {"symbol": "BTCUSDT", "limit": 50}
         r = requests.get(url, params=params, timeout=10)
         trades = r.json()
+        if not isinstance(trades, list):
+            print(f"Futuros resposta inesperada: {trades}")
+            return
         for trade in trades:
-            tid = str(trade.get("id")) + "_fut"
+            if not isinstance(trade, dict):
+                continue
+            tid = str(trade.get("id", "")) + "_fut"
             qty = float(trade.get("qty", 0))
             price = float(trade.get("price", 0))
             side = "🟢 COMPRA" if not trade.get("isBuyerMaker") else "🔴 VENDA"
-            if tid not in ordens_vistas and qty >= LIMITE_BTC:
+            if tid and tid not in ordens_vistas and qty >= LIMITE_BTC:
                 ordens_vistas.add(tid)
                 valor_usd = qty * price
                 msg = (
