@@ -13,14 +13,14 @@ def enviar_telegram(mensagem):
 
 ordens_vistas = set()
 
-def monitorar_spot():
+def monitorar_binance_spot():
     try:
         url = "https://api.binance.com/api/v3/trades"
         params = {"symbol": "BTCUSDT", "limit": 50}
         r = requests.get(url, params=params, timeout=10)
         trades = r.json()
         if not isinstance(trades, list):
-            print(f"Spot resposta inesperada: {trades}")
+            print(f"Binance Spot resposta inesperada: {trades}")
             return
         for trade in trades:
             if not isinstance(trade, dict):
@@ -43,29 +43,30 @@ def monitorar_spot():
                 enviar_telegram(msg)
                 print(msg)
     except Exception as e:
-        print(f"Erro spot: {e}")
+        print(f"Erro Binance Spot: {e}")
 
-def monitorar_futuros():
+def monitorar_bybit_futuros():
     try:
-        url = "https://fapi.binance.com/fapi/v1/trades"
-        params = {"symbol": "BTCUSDT", "limit": 50}
+        url = "https://api.bybit.com/v5/market/recent-trade"
+        params = {"category": "linear", "symbol": "BTCUSDT", "limit": 50}
         r = requests.get(url, params=params, timeout=10)
-        trades = r.json()
+        dados = r.json()
+        trades = dados.get("result", {}).get("list", [])
         if not isinstance(trades, list):
-            print(f"Futuros resposta inesperada: {trades}")
+            print(f"Bybit resposta inesperada: {dados}")
             return
         for trade in trades:
             if not isinstance(trade, dict):
                 continue
-            tid = str(trade.get("id", "")) + "_fut"
-            qty = float(trade.get("qty", 0))
+            tid = str(trade.get("execId", "")) + "_bybit"
+            qty = float(trade.get("size", 0))
             price = float(trade.get("price", 0))
-            side = "🟢 COMPRA" if not trade.get("isBuyerMaker") else "🔴 VENDA"
+            side = "🟢 COMPRA" if trade.get("side") == "Buy" else "🔴 VENDA"
             if tid and tid not in ordens_vistas and qty >= LIMITE_BTC:
                 ordens_vistas.add(tid)
                 valor_usd = qty * price
                 msg = (
-                    f"<b>📈 BINANCE FUTUROS — Grande Ordem BTC</b>\n"
+                    f"<b>📈 BYBIT FUTUROS — Grande Ordem BTC</b>\n"
                     f"Tipo: {side}\n"
                     f"Quantidade: {qty:.4f} BTC\n"
                     f"Preço: ${price:,.2f}\n"
@@ -75,10 +76,10 @@ def monitorar_futuros():
                 enviar_telegram(msg)
                 print(msg)
     except Exception as e:
-        print(f"Erro futuros: {e}")
+        print(f"Erro Bybit Futuros: {e}")
 
-print("Bot Binance iniciado — monitorando ordens BTC acima de 0.5 BTC...")
+print("Bot iniciado — monitorando Binance Spot + Bybit Futuros acima de 0.5 BTC...")
 while True:
-    monitorar_spot()
-    monitorar_futuros()
+    monitorar_binance_spot()
+    monitorar_bybit_futuros()
     time.sleep(30)
