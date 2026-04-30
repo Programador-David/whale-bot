@@ -1,1 +1,1 @@
-worker: python bot.py & python binance_bot.py & wait
+worker: python bot.py & python bybit_bot.py & wait
