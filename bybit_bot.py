@@ -16,26 +16,23 @@ ordens_vistas = set()
 def monitorar_bybit(categoria, label):
     try:
         url = "https://api.bybit.com/v5/market/recent-trade"
-        params = {"category": categoria, "symbol": "BTCUSDT", "limit": "50"}
+        params = {"category": categoria, "symbol": "BTCUSDT", "limit": 50}
         r = requests.get(url, params=params, timeout=10)
-        texto = r.text
         dados = r.json()
         retcode = dados.get("retCode", -1)
         if retcode != 0:
-            print(f"{label} erro retCode: {dados.get('retMsg')}")
+            print(f"{label} erro: {dados.get('retMsg')}")
             return
         trades = dados.get("result", {}).get("list", [])
-        if not isinstance(trades, list):
-            print(f"{label} lista inesperada: {trades}")
-            return
         count = 0
         for trade in trades:
             if not isinstance(trade, dict):
                 continue
-            tid = str(trade.get("execId", "")) + "_" + categoria
-            qty = float(trade.get("size", 0))
-            price = float(trade.get("price", 0))
-            side = "🟢 COMPRA" if trade.get("side") == "Buy" else "🔴 VENDA"
+            tid = str(trade.get("execId") or trade.get("i") or trade.get("v", "")) + "_" + categoria
+            qty = float(trade.get("size") or trade.get("v") or 0)
+            price = float(trade.get("price") or trade.get("p") or 0)
+            side_raw = trade.get("side") or trade.get("S", "")
+            side = "🟢 COMPRA" if side_raw == "Buy" else "🔴 VENDA"
             if tid and tid not in ordens_vistas and qty >= LIMITE_BTC:
                 ordens_vistas.add(tid)
                 valor_usd = qty * price
@@ -49,7 +46,7 @@ def monitorar_bybit(categoria, label):
                 )
                 enviar_telegram(msg)
                 count += 1
-        print(f"{label} — {len(trades)} trades verificados, {count} alertas enviados")
+        print(f"{label} — {len(trades)} trades verificados, {count} alertas")
     except Exception as e:
         print(f"Erro {label}: {e}")
 
